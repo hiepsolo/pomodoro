@@ -1,24 +1,34 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { Button } from '@/renderer/components/ui/button';
-
-function Hello() {
-  return (
-    <div>
-      <h1 className="bg-gray-500 text-center text-white">
-        Hi Tailwind has been integrated.
-      </h1>
-      <Button>Button</Button>
-    </div>
-  );
-}
+import { useCallback, useMemo, useState } from 'react';
+import Setup from './screens/setup';
+import { AppConfig, AppContextType } from './types/AppTypes';
+import { AppContext } from './store/App';
+import Home from './screens/home';
 
 export default function App() {
+  const [config, setConfig] = useState<AppConfig>({
+    notionKey: '',
+    notionWorkspace: '',
+  });
+  const overrideConfig = useCallback((newConfig: AppConfig) => {
+    setConfig(newConfig);
+  }, []);
+  const appConfig: AppContextType = useMemo<AppContextType>(
+    () => ({
+      config,
+      setConfig: overrideConfig,
+    }),
+    [config, overrideConfig],
+  );
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Hello />} />
-      </Routes>
-    </Router>
+    <AppContext.Provider value={appConfig}>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Setup />} />
+          <Route path="/home" element={<Home />} />
+        </Routes>
+      </Router>
+    </AppContext.Provider>
   );
 }
