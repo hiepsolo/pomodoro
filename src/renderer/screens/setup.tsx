@@ -23,7 +23,12 @@ const formSchema = z.object({
   notionWorkspace: z.string().min(1, {
     message: 'Nhập vào Notion workspace',
   }),
+  timeLimit: z.number().min(1, {
+    message: 'Nhập vào time cho mỗi task',
+  }),
 });
+
+const DEFAULT_TIME_LIMIT = 25; // Minutes
 
 const Setup = () => {
   const navigate = useNavigate();
@@ -38,6 +43,7 @@ const Setup = () => {
     defaultValues: {
       notionKey: config.notionKey,
       notionWorkspace: config.notionWorkspace,
+      timeLimit: DEFAULT_TIME_LIMIT,
     },
   });
 
@@ -45,6 +51,7 @@ const Setup = () => {
     setConfig({
       notionKey: values.notionKey,
       notionWorkspace: values.notionWorkspace,
+      timeLimit: values.timeLimit,
     });
     navigate('/home');
   };
@@ -75,6 +82,24 @@ const Setup = () => {
                   <FormLabel>Notion workspace</FormLabel>
                   <FormControl>
                     <Input placeholder="Workspace của bạn" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="timeLimit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Thời gian mỗi pomodoro (min)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Số phút mỗi pomorodo"
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

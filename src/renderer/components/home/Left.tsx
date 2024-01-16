@@ -17,10 +17,12 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { nanoid } from 'nanoid';
+import { useCountdown } from 'usehooks-ts';
 import { Button } from '../ui/button';
 import { Task } from '../../types/Task';
 import { Input } from '../ui/input';
 import { useAppStore } from '../../store/app';
+import CountDown from './Count-Down';
 
 // eslint-disable-next-line react/function-component-definition
 const Left = () => {
@@ -113,30 +115,17 @@ const Left = () => {
         </Link>
       </div>
       <div className="absolute z-10 w-full h-screen flex justify-center items-center">
-        {runningTask && runningTask.status === 'running' && (
-          <div className="flex flex-col gap-8 items-center">
-            <div
-              id="count-down"
-              className="flex items-center justify-center h-40 w-40 rounded-full border-2 border-slate-600"
-            >
-              25:00
-            </div>
+        <div className="flex flex-col gap-8 items-center">
+          {runningTask && <CountDown />}
+          {runningTask && runningTask.status === 'running' && (
             <Button
               onClick={handlePauseRunning()}
               className="bg-yellow-400 hover:bg-yellow-300"
             >
               <PauseIcon className="mr-2 h-4 w-4" /> Tạm dừng
             </Button>
-          </div>
-        )}
-        {runningTask && runningTask.status === 'paused' && (
-          <div className="flex flex-col gap-8 items-center">
-            <div
-              id="count-down"
-              className="flex items-center justify-center h-40 w-40 rounded-full border-2 border-slate-600"
-            >
-              25:00
-            </div>
+          )}
+          {runningTask && runningTask.status === 'paused' && (
             <div className="flex w-32 flex-col gap-2 items-center">
               <Button
                 onClick={handleContinueRunning()}
@@ -151,8 +140,8 @@ const Left = () => {
                 <StopIcon className="mr-2 h-4 w-4" /> Tạm dừng
               </Button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
         {!runningTask && (
           <Popover>
             <PopoverTrigger asChild>

@@ -3,15 +3,28 @@ import { create, StateCreator } from 'zustand';
 import { nanoid } from 'nanoid';
 import { ConfigSlice, TaskSlice } from './slices';
 
+const CONFIG_KEY = 'config';
+
 const createConfigSlice: StateCreator<ConfigSlice, [], [], ConfigSlice> = (
   set,
-) => ({
-  config: {
-    notionKey: '',
-    notionWorkspace: '',
-  },
-  setConfig: (config) => set(() => ({ config })),
-});
+) => {
+  const configData = localStorage.getItem(CONFIG_KEY);
+  const configObj = configData
+    ? JSON.parse(configData)
+    : {
+        notionKey: '',
+        notionWorkspace: '',
+        timeLimit: 25,
+      };
+  return {
+    config: configObj,
+    setConfig: (config) =>
+      set(() => {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        return { config };
+      }),
+  };
+};
 const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
   todoTasks: [
     {
@@ -48,6 +61,7 @@ const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
         runningTask: {
           task,
           status: 'running',
+          count: 0,
         },
       };
     }),
