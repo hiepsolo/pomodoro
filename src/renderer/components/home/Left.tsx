@@ -13,81 +13,88 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from '@radix-ui/react-popover';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
+import { nanoid } from 'nanoid';
 import { Button } from '../ui/button';
 import { Task } from '../../types/Task';
 import { Input } from '../ui/input';
+import { useAppStore } from '../../store/app';
 
 // eslint-disable-next-line react/function-component-definition
 const Left = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm] = useDebounce(searchTerm, 300);
-  const [inProgressTask, setInProgressTask] = useState<Task | null>(null);
-  const [pausedTask, setPausedTask] = useState<Task | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      name: 'Việc 1',
-      description: 'Việc 1 desc',
-      status: 'todo',
-    },
-    { name: 'Việc 2', description: 'Mô tả 2', status: 'todo' },
-    { name: 'Việc 3', description: 'Mô tả 3', status: 'todo' },
-    { name: 'Việc 4', description: 'Mô tả 4', status: 'todo' },
-    { name: 'Việc 5', description: 'Mô tả 5', status: 'todo' },
-    { name: 'Việc 6', description: 'Mô tả 6', status: 'todo' },
-    {
-      name: 'Việc 7',
-      description: 'Mô tả 7',
-      status: 'done',
-    },
-  ]);
-  const todoTasks =
-    tasks && tasks.length > 0
-      ? tasks.filter((task) => {
-          if (!debouncedSearchTerm) {
-            return task.status === 'todo';
-          }
-          return (
-            task.status === 'todo' &&
-            task.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-          );
-        })
-      : [];
-  const selectTask = (task: Task) => () => {
+  const {
+    runningTask,
+    filteredTasks,
+    addTask,
+    selectTask,
+    startTask,
+    continueRunning,
+    pauseRunning,
+    stopRunning,
+    finishRunning,
+    searchBy,
+  } = useAppStore(
+    useShallow((state) => ({
+      filteredTasks: state.filteredTasks,
+      runningTask: state.runningTask,
+      addTask: state.addTask,
+      selectTask: state.startTask,
+      continueRunning: state.continueRunning,
+      pauseRunning: state.pauseRunning,
+      stopRunning: state.stopRunning,
+      finishRunning: state.finishRunning,
+      searchBy: state.searchBy,
+      startTask: state.selectTasks,
+    })),
+  );
+  useEffect(() => {
+    searchBy(debouncedSearchTerm);
+  }, [debouncedSearchTerm, searchBy]);
+
+  const handleSelectTask = (task: Task) => () => {
     setSearchTerm('');
-    setInProgressTask(task);
-    setTasks(tasks.filter((t) => t.name !== task.name));
+    selectTask(task);
   };
 
-  const continueRunning = () => () => {
-    setInProgressTask(pausedTask);
-    setPausedTask(null);
+  const handleContinueRunning = () => () => {
+    if (runningTask) {
+      continueRunning(runningTask.task);
+    }
   };
 
-  const pauseRunning = () => () => {
-    setInProgressTask(null);
-    setPausedTask(inProgressTask);
+  const handlePauseRunning = () => () => {
+    if (runningTask) {
+      pauseRunning(runningTask.task);
+    }
   };
 
-  const stopRunning = () => () => {
-    setInProgressTask(null);
-    setPausedTask(null);
-    setTasks(
-      [...tasks, pausedTask as Task].sort((a, b) => (a.name > b.name ? 1 : -1)),
-    );
+  const handleStopRunning = () => () => {
+    if (runningTask) {
+      stopRunning(runningTask.task);
+    }
   };
 
   const handleSearchTermChange = (e: any) => {
     setSearchTerm(e.target.value);
   };
 
+  const handleStartClick = () => {
+    startTask();
+  };
+
   const createTask = () => {
     // TODO call to API later
-    setTasks([
-      ...tasks,
-      { name: debouncedSearchTerm, status: 'todo', description: '' },
-    ]);
+    addTask({
+      id: nanoid(),
+      name: debouncedSearchTerm,
+      status: 'todo',
+      description: '',
+    });
+    setSearchTerm('');
   };
   return (
     <div className="col-span-3 relative">
@@ -106,7 +113,7 @@ const Left = () => {
         </Link>
       </div>
       <div className="absolute z-10 w-full h-screen flex justify-center items-center">
-        {inProgressTask && (
+        {runningTask && runningTask.status === 'running' && (
           <div className="flex flex-col gap-8 items-center">
             <div
               id="count-down"
@@ -115,14 +122,14 @@ const Left = () => {
               25:00
             </div>
             <Button
-              onClick={pauseRunning()}
+              onClick={handlePauseRunning()}
               className="bg-yellow-400 hover:bg-yellow-300"
             >
               <PauseIcon className="mr-2 h-4 w-4" /> Tạm dừng
             </Button>
           </div>
         )}
-        {pausedTask && (
+        {runningTask && runningTask.status === 'paused' && (
           <div className="flex flex-col gap-8 items-center">
             <div
               id="count-down"
@@ -132,13 +139,13 @@ const Left = () => {
             </div>
             <div className="flex w-32 flex-col gap-2 items-center">
               <Button
-                onClick={continueRunning()}
+                onClick={handleContinueRunning()}
                 className="w-full bg-blue-400 hover:bg-blue-300"
               >
                 <PlayIcon className="mr-2 h-4 w-4" /> Tiếp tục
               </Button>
               <Button
-                onClick={stopRunning()}
+                onClick={handleStopRunning()}
                 className="w-full bg-red-400 hover:bg-red-300"
               >
                 <StopIcon className="mr-2 h-4 w-4" /> Tạm dừng
@@ -146,10 +153,10 @@ const Left = () => {
             </div>
           </div>
         )}
-        {!inProgressTask && !pausedTask && (
+        {!runningTask && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button className="w-32">
+              <Button className="w-32" onClick={handleStartClick}>
                 <PlayIcon className="mr-2 h-4 w-4" /> Bắt đầu
               </Button>
             </PopoverTrigger>
@@ -160,11 +167,11 @@ const Left = () => {
                 placeholder="Chọn/Tạo 1 việc"
               />
               <div className="flex p-4 mt-1 flex-col gap-2 max-h-60 overflow-y-auto drop-shadow-sm border border-slate-200 rounded-md">
-                {todoTasks.map((task, idx) => (
+                {filteredTasks.map((task, idx) => (
                   <div
-                    key={task.name}
+                    key={task.id}
                     className="p-2 hover:cursor-pointer hover:bg-slate-100"
-                    onClick={selectTask(task)}
+                    onClick={handleSelectTask(task)}
                     onKeyUp={() => {}}
                     role="menuitem"
                     tabIndex={idx}
@@ -172,7 +179,7 @@ const Left = () => {
                     {task.name}
                   </div>
                 ))}
-                {todoTasks.length === 0 && (
+                {filteredTasks.length === 0 && (
                   <div
                     onClick={createTask}
                     className="p-2 hover:cursor-pointer hover:bg-blue-100"

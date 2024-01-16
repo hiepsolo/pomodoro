@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,10 +10,11 @@ import {
   FormLabel,
   FormMessage,
 } from '@/renderer/components/ui/form';
+import { useShallow } from 'zustand/react/shallow';
 import { Input } from '@components/ui/input';
 import { Button } from '@components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { AppContext } from '../store/App';
+import { useAppStore } from '../store/app';
 
 const formSchema = z.object({
   notionKey: z.string().min(1, {
@@ -26,12 +27,17 @@ const formSchema = z.object({
 
 const Setup = () => {
   const navigate = useNavigate();
-  const { setConfig } = useContext(AppContext);
+  const { config, setConfig } = useAppStore(
+    useShallow((state) => ({
+      config: state.config,
+      setConfig: state.setConfig,
+    })),
+  );
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      notionKey: '',
-      notionWorkspace: '',
+      notionKey: config.notionKey,
+      notionWorkspace: config.notionWorkspace,
     },
   });
 

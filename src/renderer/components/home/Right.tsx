@@ -6,6 +6,7 @@ import {
   AccordionTrigger,
 } from '@components/ui/accordion';
 import { PlayIcon, TrashIcon } from '@radix-ui/react-icons';
+import { useShallow } from 'zustand/react/shallow';
 import { Task } from '../../types/Task';
 import {
   AlertDialog,
@@ -17,65 +18,125 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
+import { useAppStore } from '../../store/app';
+import clsx from 'clsx';
 
 type Props = {};
 
-const Right = (props: Props) => {
-  const [deletedTask, setDeletedTask] = useState<Task | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      name: 'Việc 1',
-      description: 'Việc 1 desc',
-      status: 'todo',
-    },
-    { name: 'Việc 2', description: 'Mô tả 2', status: 'todo' },
-    { name: 'Việc 3', description: 'Mô tả 3', status: 'todo' },
-    { name: 'Việc 4', description: 'Mô tả 4', status: 'todo' },
-    { name: 'Việc 5', description: 'Mô tả 5', status: 'todo' },
-    { name: 'Việc 6', description: 'Mô tả 6', status: 'todo' },
-    {
-      name: 'Việc 7',
-      description: 'Mô tả 7',
-      status: 'done',
-    },
-  ]);
-  const todoTasks =
-    tasks && tasks.length > 0
-      ? tasks.filter((task) => task.status === 'todo')
-      : [];
-  const doneTasks =
-    tasks && tasks.length > 0
-      ? tasks.filter((task) => task.status === 'done')
-      : [];
-  const confirmDelete = (task: Task) => () => {
-    setDeletedTask(task);
-  };
-  const acceptTaskDeleting = () => {
-    setDeletedTask(null);
-    setTasks(tasks.filter((t) => t.name !== deletedTask?.name));
-  };
-  const cancelTaskDeleting = () => {
-    setDeletedTask(null);
-  };
-  const startTask = (task: Task) => () => {
-    // TODO start task
-  };
+type TaskProcessState = {
+  task: Task;
+  status: 'replace-running-task' | 'delete-task';
+};
 
+type DialogState = {
+  title: string;
+  content: string;
+  btnConfirm: string;
+};
+
+const Right = (props: Props) => {
+  const [processTaskState, setProcessTaskState] =
+    useState<TaskProcessState | null>(null);
+  const {
+    todoTasks,
+    doneTasks,
+    runningTask,
+    filteredTasks,
+    addTask,
+    selectTask,
+    startTask,
+    continueRunning,
+    pauseRunning,
+    stopRunning,
+    finishRunning,
+    removeTask,
+    searchBy,
+  } = useAppStore(
+    useShallow((state) => ({
+      todoTasks: state.todoTasks,
+      doneTasks: state.doneTasks,
+      runningTask: state.runningTask,
+      addTask: state.addTask,
+      continueRunning: state.continueRunning,
+      pauseRunning: state.pauseRunning,
+      stopRunning: state.stopRunning,
+      finishRunning: state.finishRunning,
+      removeTask: state.deleteTask,
+      searchBy: state.searchBy,
+      startTask: state.startTask,
+    })),
+  );
+  const acceptTaskProcess = () => {
+    setProcessTaskState(null);
+    switch (processTaskState?.status) {
+      case 'replace-running-task':
+        startTask(processTaskState.task);
+        break;
+      default:
+        if (runningTask !== null) {
+          stopRunning(processTaskState!.task);
+        }
+        removeTask(processTaskState!.task);
+        break;
+    }
+  };
+  const cancelTaskProcess = () => {
+    setProcessTaskState(null);
+  };
+  const handleDeleteTask = (task: Task) => () => {
+    setProcessTaskState({
+      task,
+      status: 'delete-task',
+    });
+  };
+  const handleStartTask = (task: Task) => () => {
+    if (runningTask !== null) {
+      setProcessTaskState({
+        task,
+        status: 'replace-running-task',
+      });
+    } else {
+      startTask(task);
+    }
+  };
+  const dlgState: DialogState =
+    processTaskState && processTaskState.status === 'delete-task'
+      ? {
+          title: 'Xoá?',
+          content: 'Bạn có chắc ko?',
+          btnConfirm: 'Xoá',
+        }
+      : {
+          title: 'Thay thế task đang chạy?',
+          content: 'Bạn có chắc muốn chạy task này thay thế task đang chạy?',
+          btnConfirm: 'Bắt đầu',
+        };
   return (
     <div className="col-span-2 grid grid-rows-2 h-full gap-6">
       <div className="flex flex-col items-center p-4">
-        <h3 className="font-semibold mb-4">Danh sách (3)</h3>
+        <h3 className="font-semibold mb-4">Danh sách ({todoTasks.length})</h3>
         <Accordion type="single" collapsible className="w-full max-h-80">
           {todoTasks.map((task) => (
-            <AccordionItem value={task.name} key={task.name}>
-              <AccordionTrigger>{task.name}</AccordionTrigger>
+            <AccordionItem value={task.name} key={task.id}>
+              <AccordionTrigger
+                className={clsx({
+                  'text-green-500':
+                    runningTask && runningTask.task.id === task.id,
+                })}
+              >
+                {task.name}
+              </AccordionTrigger>
               <AccordionContent>
                 {task.description}
-                <div className="flex justify-between">
-                  <PlayIcon
-                    className="mt-1 text-green-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-green-400"
-                    onClick={startTask(task)}
-                  />
+                <div className="mt-2 flex justify-between">
+                  {runningTask && runningTask.task.id === task.id ? (
+                    <p className="text-green-500">Đang chạy...</p>
+                  ) : (
+                    <PlayIcon
+                      className="mt-1 text-green-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-green-400"
+                      onClick={handleStartTask(task)}
+                    />
+                  )}
                   <div className="flex gap-2">
                     {/* <Pencil1Icon
                       className="mt-1 text-slate-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-slate-400"
@@ -83,7 +144,7 @@ const Right = (props: Props) => {
                     /> */}
                     <TrashIcon
                       className="mt-1 text-red-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-red-400"
-                      onClick={confirmDelete(task)}
+                      onClick={handleDeleteTask(task)}
                     />
                   </div>
                 </div>
@@ -93,31 +154,33 @@ const Right = (props: Props) => {
         </Accordion>
       </div>
       <div className="flex flex-col items-center p-4">
-        <h3 className="text-blue-500 font-semibold mb-4">Đã hoàn thành (1)</h3>
+        <h3 className="text-blue-500 font-semibold mb-4">
+          Đã hoàn thành hôm nay ({doneTasks.length})
+        </h3>
         <Accordion type="single" collapsible className="w-full max-h-80">
           {doneTasks.map((task) => (
-            <AccordionItem value={task.name} key={task.name}>
+            <AccordionItem value={task.name} key={task.id}>
               <AccordionTrigger>{task.name}</AccordionTrigger>
               <AccordionContent>{task.description}</AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>
       </div>
-      <AlertDialog open={deletedTask !== null}>
+      <AlertDialog open={processTaskState !== null}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle> Xoá? </AlertDialogTitle>
-            <AlertDialogDescription>Bạn có chắc ko?</AlertDialogDescription>
+            <AlertDialogTitle> {dlgState.title} </AlertDialogTitle>
+            <AlertDialogDescription>{dlgState.content}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelTaskDeleting}>
+            <AlertDialogCancel onClick={cancelTaskProcess}>
               Huỷ bỏ
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={acceptTaskDeleting}
+              onClick={acceptTaskProcess}
               className="bg-red-500 hover:bg-red-400"
             >
-              Xoá
+              {dlgState.btnConfirm}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
