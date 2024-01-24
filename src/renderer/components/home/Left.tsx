@@ -17,7 +17,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { nanoid } from 'nanoid';
-import { useCountdown } from 'usehooks-ts';
 import { Button } from '../ui/button';
 import { Task } from '../../types/Task';
 import { Input } from '../ui/input';
@@ -31,19 +30,18 @@ const Left = () => {
   const {
     runningTask,
     filteredTasks,
-    addTask,
+    quickAddTask,
     selectTask,
     startTask,
     continueRunning,
     pauseRunning,
     stopRunning,
-    finishRunning,
     searchBy,
   } = useAppStore(
     useShallow((state) => ({
       filteredTasks: state.filteredTasks,
       runningTask: state.runningTask,
-      addTask: state.addTask,
+      quickAddTask: state.quickAddTask,
       selectTask: state.startTask,
       continueRunning: state.continueRunning,
       pauseRunning: state.pauseRunning,
@@ -89,8 +87,7 @@ const Left = () => {
   };
 
   const createTask = () => {
-    // TODO call to API later
-    addTask({
+    quickAddTask({
       id: nanoid(),
       name: debouncedSearchTerm,
       status: 'todo',
@@ -137,7 +134,7 @@ const Left = () => {
                 onClick={handleStopRunning()}
                 className="w-full bg-red-400 hover:bg-red-300"
               >
-                <StopIcon className="mr-2 h-4 w-4" /> Tạm dừng
+                <StopIcon className="mr-2 h-4 w-4" /> Dừng
               </Button>
             </div>
           )}

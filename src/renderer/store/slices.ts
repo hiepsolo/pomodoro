@@ -9,11 +9,14 @@ export type ConfigSlice = {
 export type TaskSlice = {
   todoTasks: Task[];
   doneTasks: Task[];
+  selectedTask: Task | null;
   runningTask: RunningTask | null;
   filteredTasks: Task[];
-  updateTask: (task: Task) => void;
+  getTask: (taskId: string) => void;
+  updateTask: (task: Partial<Task>) => void;
   deleteTask: (task: Task) => void;
   addTask: (task: Task) => void;
+  quickAddTask: (task: Task) => void;
   selectTasks: () => void;
   startTask: (task: Task) => void;
   continueRunning: (task: Task) => void;

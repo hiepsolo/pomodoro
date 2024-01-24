@@ -41,12 +41,21 @@ const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
   ],
   doneTasks: [],
   runningTask: null,
+  selectedTask: null,
   filteredTasks: [],
   updateTask: (task) =>
     set((state) => {
       state.todoTasks.forEach((t, index) => {
         if (t.id === task.id) {
           state.todoTasks[index] = { ...state.todoTasks[index], ...task };
+          console.log(
+            '🚀 ~ state.todoTasks.forEach ~ { ...state.todoTasks[index], ...task }:',
+            { ...state.todoTasks[index], ...task },
+          );
+          console.log(
+            '🚀 ~ state.todoTasks.forEach ~ state.todoTasks[index]:',
+            state.todoTasks[index],
+          );
         }
       });
       return {
@@ -58,11 +67,25 @@ const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
       state.todoTasks.push(task);
       return {
         todoTasks: [...state.todoTasks],
+      };
+    }),
+  quickAddTask: (task) =>
+    set((state) => {
+      state.todoTasks.push(task);
+      return {
+        todoTasks: [...state.todoTasks],
         runningTask: {
           task,
           status: 'running',
           count: 0,
         },
+      };
+    }),
+  getTask: (taskId) =>
+    set((state) => {
+      return {
+        selectedTask:
+          state.todoTasks.find((task) => task.id === taskId) || null,
       };
     }),
   deleteTask: (task) =>
@@ -84,6 +107,7 @@ const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
         runningTask: {
           task,
           status: 'running',
+          count: 0,
         },
       };
     }),

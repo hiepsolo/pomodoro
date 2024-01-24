@@ -5,8 +5,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@components/ui/accordion';
-import { PlayIcon, TrashIcon } from '@radix-ui/react-icons';
+import {
+  Pencil1Icon,
+  PlayIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@radix-ui/react-icons';
 import { useShallow } from 'zustand/react/shallow';
+import clsx from 'clsx';
 import { Task } from '../../types/Task';
 import {
   AlertDialog,
@@ -19,7 +25,8 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog';
 import { useAppStore } from '../../store/app';
-import clsx from 'clsx';
+import { Button } from '../ui/button';
+import TaskDialog from './TaskDialog';
 
 type Props = {};
 
@@ -37,32 +44,24 @@ type DialogState = {
 const Right = (props: Props) => {
   const [processTaskState, setProcessTaskState] =
     useState<TaskProcessState | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | undefined>(
+    undefined,
+  );
+  const [dlgOpen, setDlgOpen] = useState(false);
   const {
     todoTasks,
     doneTasks,
     runningTask,
-    filteredTasks,
-    addTask,
-    selectTask,
     startTask,
-    continueRunning,
-    pauseRunning,
     stopRunning,
-    finishRunning,
     removeTask,
-    searchBy,
   } = useAppStore(
     useShallow((state) => ({
       todoTasks: state.todoTasks,
       doneTasks: state.doneTasks,
       runningTask: state.runningTask,
-      addTask: state.addTask,
-      continueRunning: state.continueRunning,
-      pauseRunning: state.pauseRunning,
       stopRunning: state.stopRunning,
-      finishRunning: state.finishRunning,
       removeTask: state.deleteTask,
-      searchBy: state.searchBy,
       startTask: state.startTask,
     })),
   );
@@ -99,6 +98,14 @@ const Right = (props: Props) => {
       startTask(task);
     }
   };
+  const handleOpenDlg = (taskId?: string) => () => {
+    setSelectedTaskId(taskId);
+    setDlgOpen(true);
+  };
+  const handleCloseDlg = () => {
+    setSelectedTaskId(undefined);
+    setDlgOpen(false);
+  };
   const dlgState: DialogState =
     processTaskState && processTaskState.status === 'delete-task'
       ? {
@@ -115,7 +122,20 @@ const Right = (props: Props) => {
     <div className="col-span-2 grid grid-rows-2 h-full gap-6">
       <div className="flex flex-col items-center p-4">
         <h3 className="font-semibold mb-4">Danh sách ({todoTasks.length})</h3>
-        <Accordion type="single" collapsible className="w-full max-h-80">
+        <div className="flex w-full">
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-full w-10 h-10 bg-slate-300 hover:bg-slate-400"
+            onClick={handleOpenDlg()}
+          >
+            <PlusIcon
+              onClick={handleOpenDlg()}
+              className="h-4 w-4 text-white"
+            />
+          </Button>
+        </div>
+        <Accordion type="single" collapsible className="w-full">
           {todoTasks.map((task) => (
             <AccordionItem value={task.name} key={task.id}>
               <AccordionTrigger
@@ -127,7 +147,9 @@ const Right = (props: Props) => {
                 {task.name}
               </AccordionTrigger>
               <AccordionContent>
-                {task.description}
+                <p className="text-sm text-muted-foreground">
+                  {task.description}
+                </p>
                 <div className="mt-2 flex justify-between">
                   {runningTask && runningTask.task.id === task.id ? (
                     <p className="text-green-500">Đang chạy...</p>
@@ -138,10 +160,10 @@ const Right = (props: Props) => {
                     />
                   )}
                   <div className="flex gap-2">
-                    {/* <Pencil1Icon
+                    <Pencil1Icon
                       className="mt-1 text-slate-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-slate-400"
-                      onClick={confirmDelete(task)}
-                    /> */}
+                      onClick={handleOpenDlg(task.id)}
+                    />
                     <TrashIcon
                       className="mt-1 text-red-500 font-bold h-4 w-4 hover:cursor-pointer hover:text-red-400"
                       onClick={handleDeleteTask(task)}
@@ -185,6 +207,11 @@ const Right = (props: Props) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <TaskDialog
+        isOpen={dlgOpen}
+        close={handleCloseDlg}
+        taskId={selectedTaskId}
+      />
     </div>
   );
 };

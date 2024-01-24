@@ -21,6 +21,8 @@ module.exports = {
         unnamedComponents: 'arrow-function',
       },
     ],
+    'react/prop-types': 'off',
+    'react/require-default-props': 'off', // Since we do not use prop-types
   },
   parserOptions: {
     ecmaVersion: 2022,
