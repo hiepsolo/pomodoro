@@ -32,10 +32,11 @@ const DEFAULT_TIME_LIMIT = 25; // Minutes
 
 const Setup = () => {
   const navigate = useNavigate();
-  const { config, setConfig } = useAppStore(
+  const { config, setConfig, initApp } = useAppStore(
     useShallow((state) => ({
       config: state.config,
       setConfig: state.setConfig,
+      initApp: state.initApp,
     })),
   );
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,12 +48,13 @@ const Setup = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setConfig({
       notionKey: values.notionKey,
       notionWorkspace: values.notionWorkspace,
       timeLimit: values.timeLimit,
     });
+    await initApp();
     navigate('/home');
   };
   return (
@@ -79,9 +81,9 @@ const Setup = () => {
               name="notionWorkspace"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notion workspace</FormLabel>
+                  <FormLabel>Page Id</FormLabel>
                   <FormControl>
-                    <Input placeholder="Workspace của bạn" {...field} />
+                    <Input placeholder="Page id của bạn" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

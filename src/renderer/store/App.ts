@@ -1,13 +1,19 @@
 /* eslint-disable import/prefer-default-export */
 import { create, StateCreator } from 'zustand';
-import { nanoid } from 'nanoid';
 import { ConfigSlice, TaskSlice } from './slices';
+import {
+  addTask,
+  deleteTask,
+  getTasks,
+  initDatabase,
+  updateTask,
+} from './apis';
+import { Task } from '../types/Task';
+import { AppConfig } from '../types/App';
 
 const CONFIG_KEY = 'config';
 
-const createConfigSlice: StateCreator<ConfigSlice, [], [], ConfigSlice> = (
-  set,
-) => {
+const getConfigObj = (): AppConfig => {
   const configData = localStorage.getItem(CONFIG_KEY);
   const configObj = configData
     ? JSON.parse(configData)
@@ -15,72 +21,127 @@ const createConfigSlice: StateCreator<ConfigSlice, [], [], ConfigSlice> = (
         notionKey: '',
         notionWorkspace: '',
         timeLimit: 25,
+        databaseId: '',
       };
+  return configObj;
+};
+
+const createConfigSlice: StateCreator<ConfigSlice, [], [], ConfigSlice> = (
+  set,
+) => {
+  const configObj = getConfigObj();
   return {
     config: configObj,
-    setConfig: (config) =>
-      set(() => {
-        localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
-        return { config };
-      }),
+    setConfig: (config) => {
+      const newConfig = {
+        ...configObj,
+        ...config,
+      };
+      return set(() => {
+        localStorage.setItem(CONFIG_KEY, JSON.stringify(newConfig));
+        return { config: newConfig };
+      });
+    },
+    initApp: async () => {
+      if (!configObj.databaseId) {
+        try {
+          const databaseId = await initDatabase(configObj.notionWorkspace);
+          set(() => {
+            const newConfig = {
+              ...configObj,
+              databaseId,
+            };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(newConfig));
+            return { config: newConfig };
+          });
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    },
   };
 };
+
 const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
-  todoTasks: [
-    {
-      id: nanoid(),
-      name: 'Việc 1',
-      description: 'Việc 1 desc',
-      status: 'todo',
-    },
-    { id: nanoid(), name: 'Việc 2', description: 'Mô tả 2', status: 'todo' },
-    { id: nanoid(), name: 'Việc 3', description: 'Mô tả 3', status: 'todo' },
-    { id: nanoid(), name: 'Việc 4', description: 'Mô tả 4', status: 'todo' },
-    { id: nanoid(), name: 'Việc 5', description: 'Mô tả 5', status: 'todo' },
-    { id: nanoid(), name: 'Việc 6', description: 'Mô tả 6', status: 'todo' },
-  ],
+  todoTasks: [],
   doneTasks: [],
   runningTask: null,
   selectedTask: null,
   filteredTasks: [],
-  updateTask: (task) =>
-    set((state) => {
-      state.todoTasks.forEach((t, index) => {
-        if (t.id === task.id) {
-          state.todoTasks[index] = { ...state.todoTasks[index], ...task };
-          console.log(
-            '🚀 ~ state.todoTasks.forEach ~ { ...state.todoTasks[index], ...task }:',
-            { ...state.todoTasks[index], ...task },
-          );
-          console.log(
-            '🚀 ~ state.todoTasks.forEach ~ state.todoTasks[index]:',
-            state.todoTasks[index],
-          );
-        }
+  isLoading: false,
+  databaseId: '',
+  loadTasks: async () => {
+    const configObj = getConfigObj();
+    set(() => ({ isLoading: true, databaseId: configObj.databaseId }));
+    try {
+      const tasks: Task[] = await getTasks(configObj.databaseId);
+      set(() => {
+        return {
+          todoTasks: tasks.filter((t) => t.status === 'todo'),
+          doneTasks: tasks.filter((t) => t.status === 'done'),
+          isLoading: false,
+        };
       });
-      return {
-        todoTasks: [...state.todoTasks],
-      };
-    }),
-  addTask: (task) =>
-    set((state) => {
-      state.todoTasks.push(task);
-      return {
-        todoTasks: [...state.todoTasks],
-      };
-    }),
-  quickAddTask: (task) =>
-    set((state) => {
-      state.todoTasks.push(task);
-      return {
-        todoTasks: [...state.todoTasks],
-        runningTask: {
-          task,
-          status: 'running',
-          count: 0,
-        },
-      };
-    }),
+    } catch (error) {
+      console.error(error);
+      set(() => {
+        return {
+          isLoading: false,
+        };
+      });
+    }
+  },
+  updateTask: async (task) => {
+    const configObj = getConfigObj();
+    try {
+      await updateTask(configObj.databaseId, task.id!, task);
+      set((state) => {
+        state.todoTasks.forEach((t, index) => {
+          if (t.id === task.id) {
+            state.todoTasks[index] = { ...state.todoTasks[index], ...task };
+          }
+        });
+        return {
+          todoTasks: [...state.todoTasks],
+        };
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+  addTask: async (task) => {
+    const configObj = getConfigObj();
+    try {
+      const newTask = await addTask(configObj.databaseId, task);
+      set((state) => {
+        state.todoTasks.push(newTask);
+        return {
+          todoTasks: [...state.todoTasks],
+        };
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  },
+  quickAddTask: async (task) => {
+    const configObj = getConfigObj();
+    try {
+      const newTask = await addTask(configObj.databaseId, task);
+      set((state) => {
+        state.todoTasks.push(newTask);
+        return {
+          todoTasks: [...state.todoTasks],
+          runningTask: {
+            task,
+            status: 'running',
+            count: 0,
+          },
+        };
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  },
   getTask: (taskId) =>
     set((state) => {
       return {
@@ -88,16 +149,23 @@ const createTaskSlice: StateCreator<TaskSlice, [], [], TaskSlice> = (set) => ({
           state.todoTasks.find((task) => task.id === taskId) || null,
       };
     }),
-  deleteTask: (task) =>
-    set((state) => {
-      const deletedIndex = state.todoTasks.findIndex((t) => t.id === task.id);
-      if (deletedIndex >= 0) {
-        state.todoTasks.splice(deletedIndex, 1);
-      }
-      return {
-        todoTasks: [...state.todoTasks],
-      };
-    }),
+  deleteTask: async (task) => {
+    const configObj = getConfigObj();
+    try {
+      const deletedTask = await deleteTask(configObj.databaseId, task.id);
+      set((state) => {
+        const deletedIndex = state.todoTasks.findIndex((t) => t.id === task.id);
+        if (deletedIndex >= 0) {
+          state.todoTasks.splice(deletedIndex, 1);
+        }
+        return {
+          todoTasks: [...state.todoTasks],
+        };
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  },
   startTask: (task) =>
     set((state) => {
       // const selectedIndex = state.todoTasks.findIndex((t) => t.id === task.id);

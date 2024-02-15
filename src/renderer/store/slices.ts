@@ -3,15 +3,19 @@ import { RunningTask, Task } from '../types/Task';
 
 export type ConfigSlice = {
   config: AppConfig;
-  setConfig: (config: AppConfig) => void;
+  setConfig: (config: Partial<AppConfig>) => void;
+  initApp: () => void;
 };
 
 export type TaskSlice = {
+  isLoading: boolean;
   todoTasks: Task[];
   doneTasks: Task[];
   selectedTask: Task | null;
   runningTask: RunningTask | null;
   filteredTasks: Task[];
+  databaseId: string;
+  loadTasks: () => void;
   getTask: (taskId: string) => void;
   updateTask: (task: Partial<Task>) => void;
   deleteTask: (task: Task) => void;
