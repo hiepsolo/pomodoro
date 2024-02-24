@@ -5,8 +5,8 @@ const DATABASE_ID = '0235615d5e674ce3be1c431533706119';
 const NOTION_WORKSPACE = '2d1da768360fbac6afc28f6a0b80afe42bb42f77';
 
 const notionAPI = axios.create({
-  // baseURL: 'https://api.notion.com/v1',
-  baseURL: 'https://langracer.com',
+  baseURL: 'https://api.notion.com/v1',
+  // baseURL: 'https://langracer.com',
   headers: {
     Authorization: `Bearer ${NOTION_API_TOKEN}`,
     'Content-Type': 'application/json',
@@ -163,8 +163,8 @@ async function initApp(pageId) {
   }
 }
 
-// initApp('d23ac5ca248546148e738b751da8fabe');
-async function test() {
-  console.log(await getListTodo());
-}
-test();
+initApp('d23ac5ca248546148e738b751da8fabe');
+// async function test() {
+//   console.log(await getListTodo());
+// }
+// test();

@@ -5,11 +5,13 @@ const makeAxios = () => {
   const configData = JSON.parse(localStorage.getItem('config') || '{}');
   return axios.create({
     // baseURL: 'https://langracer.com?apiurl=https://api.notion.com/v1',
-    baseURL: 'https://api.notion.com/v1',
+    // baseURL: 'https://api.notion.com/v1',
+    baseURL: 'http://localhost:3333',
     headers: {
-      Authorization: `Bearer ${configData.notionKey}`,
+      // Authorization: `Bearer ${configData.notionKey}`,
+      Authorization: `${configData.notionKey}`,
       'Content-Type': 'application/json',
-      'Notion-Version': '2022-06-28',
+      // 'Notion-Version': '2022-06-28',
     },
   });
 };
@@ -127,10 +129,10 @@ async function getTasks(databaseId: string): Promise<Task[]> {
       },
     });
 
-    return response.data.results.map((record: any) => {
+    return response.data.map((record: any) => {
       return {
         id: record.id,
-        name: JSON.stringify(record.properties.Name.title[0].plain_text),
+        name: record.properties.Name.title[0].plain_text,
         status: record.properties.Status.rich_text[0].plain_text || 'todo',
         description: record.properties.Description.rich_text[0].plain_text,
       };
